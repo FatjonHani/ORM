@@ -7,9 +7,6 @@ import org.hibernate.boot.registry.*;
 
 import dataMapped.ArticlesEntity;
 
-/**
- * 
- */
 
 /**
  * @author Fatjon Hani 
@@ -18,7 +15,7 @@ import dataMapped.ArticlesEntity;
 public class Main {
 
 	/**
-	 * @param args
+	 *
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -33,6 +30,7 @@ public class Main {
         
         ArticlesEntity a = ses.load(ArticlesEntity.class, 1); 
         System.out.println(a.getDescription());
+		throw new IllegalArgumentException();
 	}
 
 }

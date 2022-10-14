@@ -1,7 +1,16 @@
 
 import java.io.*;
+import java.lang.module.Configuration;
 import java.net.InetSocketAddress;
 import java.util.*;
+
+import dataMapped.ArticlesEntity;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.boot.Metadata;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.json.*;
 import java.sql.*;
 
@@ -14,6 +23,7 @@ import com.sun.net.httpserver.HttpServer;
  */
 public class Server {
 
+    private static SessionFactory factory;
     /**
      * Port to bind to for HTTP service
      */
@@ -23,21 +33,24 @@ public class Server {
      * Connect to the database
      * @throws IOException
      */
-    Connection setupDB()  {
-        String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
+    Session setupDB()  {
+        /*  String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
         Properties dbProps = new Properties();
         try {
             dbProps.load(new FileInputStream(rootPath + "db.properties"));
-            
+
             Properties user = new Properties();
             user.setProperty("user","postgres");
-            user.setProperty("password","Pass2020!");           
+            user.setProperty("password","Pass2020!");
             Connection conn = DriverManager.getConnection(dbProps.getProperty("url"), user);
             return conn;
         } catch (Exception throwables) {
             throwables.printStackTrace();
         }
-        return null;
+       */
+        Session ses = factory.openSession();
+
+        return ses;
     }
 
     /**
@@ -58,6 +71,13 @@ public class Server {
 
     public static void main(String[] args) throws Throwable {
         Server webshop = new Server();
+        Configuration config = Configuration.empty();
+        config.findModule("dataMapped/hibernate.cfg.xml");
+        StandardServiceRegistry ssr = new StandardServiceRegistryBuilder().configure("dataMapped/hibernate.cfg.xml").build();
+        Metadata meta = new MetadataSources(ssr).getMetadataBuilder().build();
+
+        factory = meta.getSessionFactoryBuilder().build();
+
         webshop.start();
         System.out.println("Webshop running at http://127.0.0.1:" + webshop.port);
     }
@@ -69,7 +89,7 @@ public class Server {
     class ArticlesHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            Connection conn = setupDB();
+            /*Connection conn = setupDB();
 
             JSONArray res = new JSONArray();
             try {
@@ -87,9 +107,18 @@ public class Server {
 				 
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
-			}
-         
-            
+			}*/
+            Session ses = setupDB();
+            JSONArray res = new JSONArray();
+            for (int i = 1; ses.get(ArticlesEntity.class,i) != null ; i++) {
+                JSONObject art = new JSONObject();
+               ArticlesEntity a = ses.get(ArticlesEntity.class,i);
+                art.put("id",a.getId());
+                art.put("description",a.getDescription());
+                art.put("price",a.getPrice());
+                art.put("amount",a.getAmount());
+                res.put(art);
+            }
             
           /*  
             JSONObject art1 = new JSONObject();
@@ -106,7 +135,7 @@ public class Server {
             res.put(art2);
           */
 
-            answerRequest(t,res.toString());
+           answerRequest(t,res.toString());
         }
 
     }
@@ -117,7 +146,7 @@ public class Server {
     class ClientsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            Connection conn = setupDB();
+          /*  Connection conn = setupDB();
 
             JSONArray res = new JSONArray();
             
@@ -146,7 +175,7 @@ public class Server {
             cli.put("address", "TGM, 1220 Wien");
             res.put(cli);
 
-           answerRequest(t,res.toString());
+           answerRequest(t,res.toString());*/
         }
 
     }
@@ -158,18 +187,32 @@ public class Server {
     class OrdersHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            Connection conn = setupDB();
+
+            // get resultList ohne parameter erstelt mir eine liste mit Object Arrays
+            // liste ist zeile object array ist spalte index anfang mitt 0 !!
+            //
+
+            Session ses = setupDB();
+           List<Object[]> objectArray =  ses.createQuery("select a.id FROM ArticlesEntity a",Object[].class).getResultList();
+
+           // mit getSingleResult kann man von einer Agregats Funktion das ergebnis getten
+            // brauch dann wenn ich die Maximale Id brauche
+            // ses.createQuery("select AVG(a.id) from ArticlesEntity a",Integer.class).getSingleResult();
+
+
+           /* Connection conn = setupDB();
 
             JSONArray res = new JSONArray();
             
             
-           
+           // statt orders.id -> o.id bissl wie java erst bei from declarieren als OrdersEntity o
+           // statt On With
             
            
              
             try {
             	 //					 Join orders with clients, order_lines, and articles
-        			ResultSet rs = conn.createStatement().executeQuery("SELECT o.id, cl.name, COUNT(o.id), SUM(al.price) FROM orders o INNER JOIN order_lines ol ON o.id = ol.order_id INNER JOIN clients cl ON o.client_id=cl.id INNER JOIN articles al ON al.id=ol.article_id GROUP BY o.id, cl.name");
+        			ResultSet rs = conn.createStatement().executeQuery("SELECT o.id, cl.name, COUNT(o.id), SUM(al.price) FROM OrdersEntity o INNER JOIN order_lines ol ON o.id = ol.order_id INNER JOIN clients cl ON o.client_id=cl.id INNER JOIN articles al ON al.id=ol.article_id GROUP BY o.id, cl.name");
         			// Get the order id, client name, number of lines, and total prize of each order and add them to res
         			  while(!rs.isLast()) {
         				  rs.next();
@@ -200,8 +243,8 @@ public class Server {
             res.put(ord);
 
             
-            answerRequest(t, res.toString());
-
+            */
+           // answerRequest(t, res.toString());
         }
     }
 
@@ -212,6 +255,7 @@ public class Server {
     class PlaceOrderHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
+/*
 
             Connection conn = setupDB();
             Map <String,String> params  = queryToMap(t.getRequestURI().getQuery());
@@ -269,6 +313,7 @@ public class Server {
 			}
 
             answerRequest(t, response);
+*/
 
 
         }

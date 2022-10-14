@@ -4,10 +4,13 @@
     "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
 <hibernate-configuration>
   <session-factory>
-    <property name="connection.url">jdbc:postgresql://localhost:5432/postgres</property>
-    <property name="connection.driver_class">org.postgresql.Driver</property>
-      <property name="connection.username">postgres</property>
-      <property name="connection.password">Pass2020!</property>
+    <property name="hbm2ddl.auto">update</property>
+    <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
+    <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
+    <property name="connection.url">jdbc:postgresql://127.0.0.1:5432/webshop</property>
+    <property name="connection.username">postgres</property>
+    <property name="connection.password">Pass2020!</property>
+    <property name="show_sql">true</property>
       <mapping class="dataMapped.ArticlesEntity"/>
       <mapping class="dataMapped.ClientsEntity"/>
       <mapping class="dataMapped.OrderLinesEntity"/>
