@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 import java.util.*;
 
 import dataMapped.ArticlesEntity;
+import dataMapped.ClientsEntity;
+import dataMapped.OrdersEntity;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.Metadata;
@@ -34,6 +36,7 @@ public class Server {
      * @throws IOException
      */
     Session setupDB()  {
+
         /*  String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
         Properties dbProps = new Properties();
         try {
@@ -47,7 +50,7 @@ public class Server {
         } catch (Exception throwables) {
             throwables.printStackTrace();
         }
-       */
+        */
         Session ses = factory.openSession();
 
         return ses;
@@ -110,16 +113,16 @@ public class Server {
 			}*/
             Session ses = setupDB();
             JSONArray res = new JSONArray();
+
             for (int i = 1; ses.get(ArticlesEntity.class,i) != null ; i++) {
                 JSONObject art = new JSONObject();
                ArticlesEntity a = ses.get(ArticlesEntity.class,i);
                 art.put("id",a.getId());
                 art.put("description",a.getDescription());
                 art.put("price",a.getPrice());
-                art.put("amount",a.getAmount());
+                art.put("amount",a.getAmount()/100.0);
                 res.put(art);
             }
-            
           /*  
             JSONObject art1 = new JSONObject();
             art1.put("id", 1);
@@ -146,6 +149,20 @@ public class Server {
     class ClientsHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
+
+            //TODO read all clients and add them to res
+            Session ses = setupDB();
+            JSONArray res = new JSONArray();
+            for (int i = 1; ses.get(ArticlesEntity.class,i) != null ; i++) {
+                JSONObject client = new JSONObject();
+                ClientsEntity a = ses.get(ClientsEntity.class,i);
+                client.put("id",a.getId());
+                client.put("name",a.getName());
+                client.put("address",a.getAddress());
+                res.put(client);
+            }
+
+            answerRequest(t,res.toString());
           /*  Connection conn = setupDB();
 
             JSONArray res = new JSONArray();
@@ -175,7 +192,7 @@ public class Server {
             cli.put("address", "TGM, 1220 Wien");
             res.put(cli);
 
-           answerRequest(t,res.toString());*/
+           */
         }
 
     }
@@ -188,12 +205,28 @@ public class Server {
         @Override
         public void handle(HttpExchange t) throws IOException {
 
+            //TODO
+            // Join orders with clients, order lines, and articles
+            // Get the order id, client name, number of lines, and total prize of each order and add them to res
+
+
+
             // get resultList ohne parameter erstelt mir eine liste mit Object Arrays
-            // liste ist zeile object array ist spalte index anfang mitt 0 !!
+            // liste ist zeile object,  array ist spalte index anfang mitt 0 !!
             //
 
             Session ses = setupDB();
-           List<Object[]> objectArray =  ses.createQuery("select a.id FROM ArticlesEntity a",Object[].class).getResultList();
+            JSONArray res = new JSONArray();
+
+
+          List<Object[]> objectArray =  ses.createQuery("SELECT o.id, cl.name, COUNT(o.id), SUM(al.price) FROM OrdersEntity o INNER JOIN OrderLinesEntity ol on o.id = ol.orderId INNER JOIN ClientsEntity cl on o.clientId=cl.id INNER JOIN ArticlesEntity al ON al.id=ol.articleId GROUP BY o.id, cl.name",Object[].class).getResultList();
+            for (Object[] obj: objectArray) {
+                for(int i =0; i < obj.length; i++){
+                JSONObject order = new JSONObject();
+                   System.out.println(obj);
+                }
+
+          }
 
            // mit getSingleResult kann man von einer Agregats Funktion das ergebnis getten
             // brauch dann wenn ich die Maximale Id brauche
@@ -266,10 +299,15 @@ public class Server {
             int order_id = 1;
             try {
 
+                //TODO Get the next free order id
+
+                //TODO Create a new order with this id for client client_id
+
 
             ResultSet groesteID =	conn.createStatement().executeQuery("SELECT MAX(id) FROM orders");
             groesteID.next();
             int freeID =  groesteID.getInt(1)+1; 
+                //TODO Get the available amount for article article_id
 
             PreparedStatement ps = conn.prepareStatement("INSERT INTO orders VALUES(?,default,?)");
             ps.setInt(1, freeID);
@@ -287,6 +325,9 @@ public class Server {
                     groesteID.next();
                     int available = groesteID.getInt(1);
 
+                 //TODO Decrease the available amount for article article_id by amount
+
+		         //TODO Insert new order line
 
                     if (available < amount)
                         throw new IllegalArgumentException(String.format("Not enough items of article #%d available", article_id));
